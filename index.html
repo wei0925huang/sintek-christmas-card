@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASCII Christmas Tree Show V2.1.1</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background: #090b10;
+      color: #e5e7eb;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+    .hud {
+      position: fixed;
+      top: 14px;
+      left: 18px;
+      font-size: 12px;
+      line-height: 1.55;
+      color: #9ca3af;
+      text-shadow: 0 1px 2px #000;
+      z-index: 10;
+    }
+    .hud strong {
+      color: #f9fafb;
+    }
+    .controls {
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: auto;
+    }
+    button {
+      background: #1f2937;
+      color: #f9fafb;
+      border: 1px solid #374151;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-family: inherit;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #374151;
+    }
+    input[type="range"] {
+      width: 110px;
+      accent-color: #22c55e;
+      cursor: pointer;
+    }
+
+    .greeting-card {
+      position: fixed;
+      left: 50%;
+      top: 10.5%;
+      transform: translate(-50%, -14px) scale(0.96);
+      z-index: 12;
+      width: min(760px, calc(100vw - 48px));
+      box-sizing: border-box;
+      padding: 18px 28px 20px;
+      border: 1px solid rgba(253, 224, 71, 0.88);
+      border-radius: 12px;
+      background: rgba(4, 8, 15, 0.88);
+      box-shadow: 0 0 28px rgba(253, 224, 71, 0.18), inset 0 0 22px rgba(103, 232, 249, 0.05);
+      text-align: center;
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 520ms ease, transform 520ms ease, visibility 0s linear 520ms;
+    }
+    .greeting-card.is-visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translate(-50%, 0) scale(1);
+      transition: opacity 520ms ease, transform 520ms ease;
+    }
+    .greeting-company {
+      color: #fde047;
+      font-family: "Microsoft JhengHei", "Noto Sans TC", sans-serif;
+      font-size: clamp(20px, 2.2vw, 34px);
+      font-weight: 700;
+      letter-spacing: 0.10em;
+      line-height: 1.35;
+    }
+    .greeting-brand {
+      margin-top: 4px;
+      color: #67e8f9;
+      font: 700 clamp(18px, 1.8vw, 28px)/1.25 Arial, sans-serif;
+      letter-spacing: 0.24em;
+    }
+    .greeting-main {
+      margin-top: 10px;
+      color: #f8fafc;
+      font: 800 clamp(24px, 3vw, 46px)/1.15 Arial, sans-serif;
+      letter-spacing: 0.08em;
+      text-shadow: 0 0 12px rgba(248, 250, 252, 0.35);
+    }
+    .greeting-year {
+      margin-top: 7px;
+      color: #fda4af;
+      font: 700 clamp(17px, 1.8vw, 27px)/1.2 Arial, sans-serif;
+      letter-spacing: 0.12em;
+    }
+    @media (max-width: 640px) {
+      .greeting-card { top: 13%; padding: 14px 16px 16px; }
+      .greeting-company { letter-spacing: 0.04em; }
+      .greeting-main, .greeting-year { letter-spacing: 0.04em; }
+    }
+    #canvas {
+      font-size: 11px;
+      line-height: 11px;
+      letter-spacing: 1px;
+      white-space: pre;
+      text-align: center;
+    }
+    .rotate-hint {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      background: #090b10;
+      color: #f8fafc;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 10px;
+      padding: 28px;
+      text-align: center;
+      font-family: "Microsoft JhengHei", sans-serif;
+    }
+    .rotate-hint .rotate-icon { font-size: 48px; color: #fde047; }
+    .rotate-hint strong { font-size: 20px; }
+    .rotate-hint span { color: #94a3b8; font-size: 14px; line-height: 1.6; }
+
+    @media (max-width: 900px) {
+      body { justify-content: flex-start; min-height: 100dvh; }
+      .hud {
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: max(6px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) 6px max(8px, env(safe-area-inset-left));
+        background: linear-gradient(180deg, rgba(9,11,16,.96), rgba(9,11,16,.78));
+        font-size: 10px;
+        line-height: 1.35;
+      }
+      .controls { gap: 6px; flex-wrap: wrap; }
+      button {
+        min-height: 40px;
+        padding: 8px 12px;
+        border-radius: 7px;
+        font-size: 13px;
+        touch-action: manipulation;
+      }
+      input[type="range"] { height: 40px; width: 104px; }
+      #growSlider { display: none; }
+      #canvas {
+        position: absolute;
+        left: 50%;
+        top: 52%;
+        transform: translate(-50%, -50%);
+        font-size: clamp(4.2px, min(1.16vh, 0.82vw), 8px);
+        line-height: clamp(4.2px, min(1.16vh, 0.82vw), 8px);
+        letter-spacing: 0;
+      }
+      .greeting-card {
+        top: max(84px, calc(env(safe-area-inset-top) + 72px));
+        width: min(82vw, 650px);
+        padding: 10px 16px 12px;
+      }
+      .greeting-company { font-size: clamp(16px, 2.7vw, 25px); letter-spacing: .04em; }
+      .greeting-brand { font-size: clamp(13px, 2.2vw, 20px); letter-spacing: .10em; }
+      .greeting-main { margin-top: 5px; font-size: clamp(18px, 3.2vw, 30px); }
+      .greeting-year { margin-top: 4px; font-size: clamp(13px, 2.2vw, 20px); }
+    }
+
+    @media (max-width: 640px) and (orientation: portrait) {
+      .rotate-hint {
+        display: flex;
+        inset: 12px 12px auto;
+        min-height: 120px;
+        border: 1px solid #374151;
+        border-radius: 12px;
+        background: rgba(9,11,16,.94);
+      }
+      .rotate-hint .rotate-icon { font-size: 30px; }
+      #canvas { top: 61%; font-size: min(0.72vw, 0.61vh); line-height: min(0.72vw, 0.61vh); }
+      .hud { top: 138px; }
+    }
+
+    @media (max-height: 500px) and (orientation: landscape) {
+      .hud strong { display: none; }
+      .hud { font-size: 9px; }
+      .controls { margin-top: 3px; }
+      button { min-height: 34px; padding: 5px 9px; font-size: 11px; }
+      input[type="range"] { height: 34px; }
+      #canvas { top: 54%; font-size: min(1.22vh, 0.82vw); line-height: min(1.22vh, 0.82vw); }
+      .greeting-card { top: 64px; padding: 8px 14px 9px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="rotateHint" class="rotate-hint" aria-hidden="true">
+    <div class="rotate-icon">↻</div>
+    <strong>請將手機旋轉為橫向</strong>
+    <span>橫向可完整觀看聖誕樹、雪橇與公司賀卡</span>
+  </div>
+  <div class="hud">
+    <div><strong>ASCII CHRISTMAS TREE SHOW V2.1.1</strong></div>
+    <div id="stats">GROW: 0% | ROT: 0° | SANTA: STANDBY | GIFTS: 0</div>
+    <div class="controls">
+      <button id="replayBtn" type="button">重播全流程</button>
+      <button id="santaBtn" type="button">呼叫雪橇</button>
+        <button id="musicBtn" type="button" aria-pressed="false">播放音樂</button>
+        <label style="display:inline-flex;align-items:center;gap:4px">音量 <input id="volumeSlider" type="range" min="0" max="100" value="35" aria-label="音量" /></label>
+      <input id="growSlider" type="range" min="0" max="100" value="0" aria-label="生長進度" />
+    </div>
+  </div>
+  <section id="greetingCard" class="greeting-card" aria-live="polite" aria-hidden="true">
+    <div class="greeting-company">鑫達懋業股份有限公司</div>
+    <div class="greeting-brand">SINTEK-SG CORPORATION</div>
+    <div class="greeting-main">MERRY CHRISTMAS</div>
+    <div class="greeting-year">HAPPY NEW YEAR 2027</div>
+  </section>
+  <pre id="canvas">LOADING CHRISTMAS TREE...</pre>
+
+  <script>
+    const COLS = 120;
+    const ROWS = 62;
+
+    // 僅使用指定鍵盤字元集
+    const RAW_CHARS = `~!@#$%^&*()_ qqqqwertyuiop{}|asdfghjkl:"zxcvbnm<>?`;
+    const SYMBOL_POOL = Array.from(new Set(RAW_CHARS.replace(/\s+/g, "").split("")));
+
+    const DENSITY_RAMP = [
+      " ",
+      "~",
+      "_",
+      "?",
+      "|",
+      "!",
+      "i",
+      "l",
+      "r",
+      "c",
+      "v",
+      "x",
+      "z",
+      "j",
+      "f",
+      "t",
+      "u",
+      "n",
+      "o",
+      "a",
+      "e",
+      "s",
+      "k",
+      "p",
+      "q",
+      "w",
+      "y",
+      "m",
+      "*",
+      "^",
+      "%",
+      "$",
+      "&",
+      "#",
+      "@",
+      "{",
+      "}",
+      "<",
+      ">",
+      '"'
+    ].filter((ch) => SYMBOL_POOL.includes(ch));
+
+    const RAMP = DENSITY_RAMP.length >= 6 ? DENSITY_RAMP : SYMBOL_POOL;
+
+    const canvasEl = document.getElementById("canvas");
+    window.addEventListener("error", (event) => {
+      const message = event && event.message ? event.message : "UNKNOWN ERROR";
+      canvasEl.textContent = "MOBILE RUNTIME ERROR: " + message;
+      canvasEl.style.color = "#f87171";
+    });
+    const statsEl = document.getElementById("stats");
+    const greetingCard = document.getElementById("greetingCard");
+    const replayBtn = document.getElementById("replayBtn");
+    const santaBtn = document.getElementById("santaBtn");
+    const growSlider = document.getElementById("growSlider");
+    const musicBtn = document.getElementById("musicBtn");
+    const volumeSlider = document.getElementById("volumeSlider");
+    const mobileMode = Math.min(window.innerWidth || 9999, window.innerHeight || 9999) < 700 ||
+      /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || "");
+    if (mobileMode) document.documentElement.classList.add("mobile-mode");
+
+    const Y0 = -1.35;
+    const Y1 = 1.77; // V2.1.1: 樹高由 2.60 提高 20% 至 3.12
+    const TREE_H = Y1 - Y0;
+
+    function mulberry32(seed) {
+      let a = seed >>> 0;
+      return function () {
+        a |= 0;
+        a = (a + 0x6d2b79f5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    const rng = mulberry32(20261225);
+
+    function pickFrom(arr) {
+      return arr[Math.floor(rng() * arr.length)] || "#";
+    }
+
+    function envelope(y) {
+      const f = Math.min(1, Math.max(0, (y - Y0) / TREE_H));
+      // 平滑外輪廓：底部圓弧飽滿，樹頂自然收尖，不再鋸齒狀內縮
+      const cone = Math.pow(1 - f, 0.72) * 1.20;
+      const baseRound = 0.92 + 0.08 * Math.sin(Math.min(1, f / 0.18) * Math.PI * 0.5);
+      return Math.max(0.025, cone * baseRound);
+    }
+
+    const points = [];
+
+    // 1. 樹幹
+    const trunkTopY = Y0 + TREE_H * 0.14;
+    for (let i = 0; i < 360; i++) {
+      const hFrac = rng();
+      const y = Y0 + hFrac * (trunkTopY - Y0);
+      const r = Math.sqrt(rng()) * 0.16;
+      const a = rng() * Math.PI * 2;
+      points.push({
+        x: Math.cos(a) * r,
+        y,
+        z: Math.sin(a) * r,
+        nx: Math.cos(a),
+        nz: Math.sin(a),
+        type: "trunk",
+        color: "#85523f",
+        glyph: pickFrom(["#", "%", "&", "|"])
+      });
+    }
+
+    // 2. 圓弧分層針葉：每層形成完整環帶，外緣自然下垂
+    const tiers = 26; // 參考原版 26 層，輪廓更乾淨
+    for (let ti = 0; ti < tiers; ti++) {
+      const tierFrac = ti / (tiers - 1);
+      const yBase = Y0 + TREE_H * (0.08 + tierFrac * 0.88);
+      const env = envelope(yBase);
+      const layerDepth = 0.105 - tierFrac * 0.040;
+      const ringCount = mobileMode
+        ? Math.max(72, Math.floor(180 * (1 - tierFrac * 0.48)))
+        : Math.max(170, Math.floor(420 * (1 - tierFrac * 0.48)));
+
+      for (let k = 0; k < ringCount; k++) {
+        const angle = (k / ringCount) * Math.PI * 2 + ti * 0.31 + (rng() - 0.5) * 0.025;
+        const radialFrac = 0.14 + Math.pow(rng(), 0.46) * 0.80;
+        const radius = env * radialFrac * (0.985 + 0.012 * Math.sin(angle * 4 + ti * 0.42));
+        const edgeDroop = -layerDepth * Math.pow(radialFrac, 1.62);
+        const crownLift = layerDepth * 0.30 * (1 - radialFrac);
+        const y = yBase + edgeDroop + crownLift + (rng() - 0.5) * 0.018;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        const hNorm = Math.min(1, Math.max(0, (y - Y0) / TREE_H));
+        const greenBand = ti % 3;
+        const g = [118, 138, 154][greenBand] + Math.floor(rng() * 16);
+        const rCol = [18, 20, 24][greenBand];
+        const bCol = [38, 44, 48][greenBand];
+        points.push({
+          x, y, z,
+          nx: Math.cos(angle) * 0.78,
+          nz: Math.sin(angle) * 0.78,
+          type: "foliage",
+          color: `rgb(${rCol},${g},${bCol})`,
+          weight: 0.58 + 0.42 * radialFrac
+        });
+      }
+    }
+
+    // 3. 螺旋花環 / 彩帶
+    const garlandSteps = 220;
+    for (let i = 0; i < garlandSteps; i++) {
+      const frac = i / garlandSteps;
+      const y = Y0 + TREE_H * (0.12 + frac * 0.84);
+      const r = envelope(y) * 1.03;
+      const angle = frac * Math.PI * 10;
+      points.push({
+        x: Math.cos(angle) * r,
+        y,
+        z: Math.sin(angle) * r,
+        nx: Math.cos(angle),
+        nz: Math.sin(angle),
+        type: "garland",
+        color: i % 2 === 0 ? "#fde68a" : "#e2e8f0",
+        glyph: i % 2 === 0 ? "*" : "~"
+      });
+    }
+
+    // 4. 彩色燈飾
+    const ornamentColors = ["#ff4d6d", "#ffd166", "#4cc9f0", "#ff9f1c", "#f72585", "#22c55e", "#a78bfa", "#f8fafc", "#06b6d4"];
+    // 4. 組合式裝飾品：每件都是完整字元圖案，不再使用大量散落彩點
+    const ornamentTemplates = [
+      ["{^}", "(O)", "{_}"],   // 圓球
+      [" ^ ", "<@>", " v "],   // 鑽石吊飾
+      ["_*_", "|@|", "|_|"],   // 小禮物盒
+      ["_*_", "(o)", "_v_"],   // 小鈴鐺
+      [" ^ ", "{#}", "{_}"]    // 寶石吊飾
+    ];
+    const ornamentObjectCount = mobileMode ? 24 : 42;
+    for (let i = 0; i < ornamentObjectCount; i++) {
+      const frac = (i + 0.5) / ornamentObjectCount;
+      const y = Y0 + TREE_H * (0.14 + frac * 0.78);
+      const angle = frac * Math.PI * 15 + (i % 4) * 0.31;
+      const r = envelope(y) * 1.075;
+      const cx = Math.cos(angle) * r;
+      const cz = Math.sin(angle) * r;
+      const tx = -Math.sin(angle), tz = Math.cos(angle);
+      const color = ornamentColors[i % ornamentColors.length];
+      const template = ornamentTemplates[i % ornamentTemplates.length];
+      const cellX = i % 6 === 0 ? 0.043 : 0.037;
+      const cellY = i % 6 === 0 ? 0.047 : 0.041;
+      const phase = rng() * Math.PI * 2;
+      for (let row = 0; row < template.length; row++) {
+        for (let col = 0; col < template[row].length; col++) {
+          const glyph = template[row][col];
+          if (glyph === " ") continue;
+          const dx = (col - 1) * cellX;
+          const dy = (1 - row) * cellY;
+          points.push({
+            x: cx + tx * dx,
+            y: y + dy,
+            z: cz + tz * dx,
+            type: "light", color, glyphBright: glyph, glyphDim: glyph, phase
+          });
+        }
+      }
+    }
+
+    // 5. 樹頂五星：清楚的五角輪廓，取消異常的水平與垂直長線
+    const starY = Y1 + 0.25;
+    const starOuter = 0.46; // 組合式大型五星
+    const starInner = 0.195;
+    const starPoly = [];
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + i * Math.PI / 5;
+      const rr = i % 2 === 0 ? starOuter : starInner;
+      starPoly.push([Math.cos(a) * rr, Math.sin(a) * rr]);
+    }
+    function insideStar(x, y) {
+      let inside = false;
+      for (let i = 0, j = starPoly.length - 1; i < starPoly.length; j = i++) {
+        const xi=starPoly[i][0], yi=starPoly[i][1], xj=starPoly[j][0], yj=starPoly[j][1];
+        const hit=((yi>y)!==(yj>y)) && x < (xj-xi)*(y-yi)/(yj-yi+1e-9)+xi;
+        if(hit) inside=!inside;
+      }
+      return inside;
+    }
+    for (let yy = -starOuter; yy <= starOuter; yy += (mobileMode ? 0.026 : 0.013)) {
+      for (let xx = -starOuter; xx <= starOuter; xx += (mobileMode ? 0.026 : 0.013)) {
+        if (!insideStar(xx, yy)) continue;
+        points.push({
+          x: xx, y: starY + yy, z: 0.08 + (rng()-0.5)*0.025,
+          type: "star", color: "#fde047",
+          glyph: Math.abs(xx)+Math.abs(yy) < 0.16 ? "@" : pickFrom(["#","#","*","^","$","%"])
+        });
+      }
+    }
+
+    // 6. 底座圓盤
+    for (let i = 0; i < (mobileMode ? 260 : 780); i++) {
+      const r = Math.sqrt(rng()) * 1.45;
+      const a = rng() * Math.PI * 2;
+      points.push({
+        x: Math.cos(a) * r,
+        y: Y0 - 0.02,
+        z: Math.sin(a) * r,
+        type: "base",
+        color: "#64748b",
+        glyph: pickFrom(["_", "~", "?"])
+      });
+    }
+
+    // 7. 背景雪花
+    const snow = Array.from({ length: mobileMode ? 72 : 135 }, () => ({
+      x: (rng() - 0.5) * 3.6,
+      y: Y0 - 0.2 + rng() * (TREE_H + 1.1),
+      z: (rng() - 0.5) * 3.6,
+      speed: 0.008 + rng() * 0.011,
+      drift: rng() * Math.PI * 2,
+      glyph: pickFrom(["*", "~", "^"])
+    }));
+
+    // 8. 聖誕老公公駕雪橇模型（局部 3D 點雲，全部使用指定符號）
+    const sleighPoints = [];
+    // 馴鹿隊列（前方 2 組馴鹿）
+    for (let rIdx = 0; rIdx < 1; rIdx++) {
+      const rx = 0.48;
+      // 身體與腿
+      for (let dx = -0.10; dx <= 0.10; dx += 0.05) {
+        sleighPoints.push({ lx: rx + dx, ly: 0.02, lz: -0.05, glyph: "#", color: "#d97706" });
+        sleighPoints.push({ lx: rx + dx, ly: 0.02, lz: 0.05, glyph: "#", color: "#d97706" });
+      }
+      // 頭與鹿角
+      sleighPoints.push({ lx: rx + 0.13, ly: 0.09, lz: 0, glyph: "@", color: "#f59e0b" });
+      sleighPoints.push({ lx: rx + 0.14, ly: 0.16, lz: -0.04, glyph: "y", color: "#fde68a" });
+      sleighPoints.push({ lx: rx + 0.14, ly: 0.16, lz: 0.04, glyph: "y", color: "#fde68a" });
+      // 紅鼻子（領頭鹿）
+      if (rIdx === 1) {
+        sleighPoints.push({ lx: rx + 0.18, ly: 0.09, lz: 0, glyph: "*", color: "#ef4444" });
+      }
+      // 韁繩
+      for (let t = 0; t <= 1; t += 0.25) {
+        sleighPoints.push({
+          lx: rx - 0.08 - t * 0.11,
+          ly: 0.04 - Math.sin(t * Math.PI) * 0.03,
+          lz: 0,
+          glyph: "~",
+          color: "#fef08a"
+        });
+      }
+    }
+
+    // 雪橇車身與滑橇
+    for (let sx = -0.34; sx <= 0.24; sx += 0.04) {
+      for (let sz = -0.11; sz <= 0.11; sz += 0.055) {
+        // 底部滑橇
+        sleighPoints.push({ lx: sx, ly: -0.08, lz: sz, glyph: "_", color: "#facc15" });
+        // 紅色雪橇外殼
+        if (Math.abs(sz) > 0.08 || sx < -0.28 || sx > 0.18) {
+          sleighPoints.push({ lx: sx, ly: -0.01, lz: sz, glyph: "%", color: "#ef4444" });
+          sleighPoints.push({ lx: sx, ly: 0.05, lz: sz, glyph: "&", color: "#dc2626" });
+        }
+      }
+    }
+    // 雪橇翹起前端
+    sleighPoints.push({ lx: 0.28, ly: -0.02, lz: -0.09, glyph: ")", color: "#facc15" });
+    sleighPoints.push({ lx: 0.28, ly: -0.02, lz: 0.09, glyph: ")", color: "#facc15" });
+
+    // 聖誕老公公（紅衣、白鬍子、紅帽白球）
+    sleighPoints.push({ lx: -0.04, ly: 0.10, lz: 0, glyph: "@", color: "#ef4444" });
+    sleighPoints.push({ lx: -0.04, ly: 0.16, lz: 0, glyph: "o", color: "#fed7aa" });
+    sleighPoints.push({ lx: 0.01, ly: 0.14, lz: 0, glyph: "~", color: "#f8fafc" }); // 白鬍子
+    sleighPoints.push({ lx: -0.05, ly: 0.22, lz: 0, glyph: "^", color: "#ef4444" }); // 紅帽
+    sleighPoints.push({ lx: -0.10, ly: 0.24, lz: 0, glyph: "*", color: "#f8fafc" }); // 帽球
+    // 後方禮物袋
+    sleighPoints.push({ lx: -0.20, ly: 0.10, lz: 0, glyph: "{", color: "#b45309" });
+    sleighPoints.push({ lx: -0.16, ly: 0.11, lz: 0, glyph: "}", color: "#d97706" });
+
+    // 狀態管理
+    // V2.0 雪地字元反光層，模擬參考圖底部水平光帶
+    const groundGlow = [];
+    for (let i = 0; i < (mobileMode ? 280 : 720); i++) {
+      const gy = Y0 - 0.06 - rng() * 0.42;
+      const gx = (rng() - 0.5) * (3.1 + (Y0 - gy) * 2.8);
+      groundGlow.push({
+        x: gx, y: gy, z: (rng() - 0.5) * 1.4,
+        glyph: pickFrom(["~", "_", "-", ".", ":", "="]),
+        color: pickFrom(["#334155", "#475569", "#64748b", "#eab308", "#14532d"]),
+        phase: rng() * Math.PI * 2
+      });
+    }
+
+    let growProgress = 0;
+    let isScrubbing = false;
+    let time = 0;
+    let lastFrame = performance.now();
+    let lastMobileFrame = 0;
+    let santaPhase = "STANDBY";
+
+    // 聖誕老公公巡航與空投禮物狀態
+    let santaActive = false;
+    let santaTimer = 0;
+    let santaCooldown = 0;
+    const sleighTrail = [];
+    const fallingGifts = [];
+    const landedGifts = [];
+    let droppedThisPass = 0;
+
+    const giftPalettes = [
+      { box: "#ef4444", ribbon: "#fde047" },
+      { box: "#3b82f6", ribbon: "#f8fafc" },
+      { box: "#a855f7", ribbon: "#fcd34d" },
+      { box: "#10b981", ribbon: "#fda4af" },
+      { box: "#f97316", ribbon: "#fef08a" }
+    ];
+
+    // 內建 Web Audio 背景音樂，不需外部 MP3
+    let audioCtx = null, masterGain = null, musicTimer = null, musicPlaying = false;
+    let musicStep = 0, nextNoteTime = 0;
+    const melody = [76,76,76,null,76,76,76,null,76,79,72,74,76,null,null,null,77,77,77,77,77,76,76,76,76,74,74,76,74,79,null,null];
+    const bassLine = [48,55,53,55,48,55,53,55];
+    const stepSeconds = 60 / 108 / 2;
+    const midiHz = n => 440 * Math.pow(2, (n - 69) / 12);
+    async function ensureAudio() {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) throw new Error("Web Audio not supported");
+      if (!audioCtx) {
+        audioCtx = new AC(); masterGain = audioCtx.createGain();
+        masterGain.gain.value = Number(volumeSlider.value) / 100 * 0.38;
+        masterGain.connect(audioCtx.destination);
+      }
+      if (audioCtx.state === "suspended") await audioCtx.resume();
+      return audioCtx.state === "running";
+    }
+    function voice(note, when, duration, level, type="triangle") {
+      if (note == null || !audioCtx) return;
+      const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+      o.type=type; o.frequency.setValueAtTime(midiHz(note),when);
+      g.gain.setValueAtTime(0.0001,when); g.gain.exponentialRampToValueAtTime(level,when+0.018);
+      g.gain.exponentialRampToValueAtTime(0.0001,when+duration);
+      o.connect(g).connect(masterGain); o.start(when); o.stop(when+duration+0.04);
+    }
+    function scheduleMusic() {
+      if (!musicPlaying || !audioCtx) return;
+      while (nextNoteTime < audioCtx.currentTime + 0.12) {
+        const n=melody[musicStep%melody.length];
+        voice(n,nextNoteTime,stepSeconds*0.82,0.13,"triangle");
+        if (musicStep%4===0) voice(bassLine[Math.floor(musicStep/4)%bassLine.length],nextNoteTime,stepSeconds*3.2,0.065,"sine");
+        musicStep++; nextNoteTime += stepSeconds;
+      }
+    }
+    async function startMusic() {
+      if (musicPlaying) return;
+      try {
+        if (!await ensureAudio()) throw new Error("Audio locked");
+        musicPlaying=true; nextNoteTime=audioCtx.currentTime+0.04;
+        musicBtn.textContent="暫停音樂"; musicBtn.setAttribute("aria-pressed","true");
+        scheduleMusic(); musicTimer=setInterval(scheduleMusic,50);
+      } catch(e) { statsEl.textContent=`AUDIO ERROR: ${e.message}`; }
+    }
+    function stopMusic() {
+      musicPlaying=false; if(musicTimer!==null) clearInterval(musicTimer); musicTimer=null;
+      musicBtn.textContent="播放音樂"; musicBtn.setAttribute("aria-pressed","false");
+    }
+    async function giftChime(note=84) {
+      try { if(!await ensureAudio()) return; const n=audioCtx.currentTime; voice(note,n,0.22,0.08,"sine"); voice(note+7,n+0.06,0.28,0.05,"triangle"); } catch(_){}
+    }
+    musicBtn.addEventListener("click",()=>musicPlaying?stopMusic():startMusic());
+    volumeSlider.addEventListener("input",()=>{ if(masterGain&&audioCtx) masterGain.gain.setTargetAtTime(Number(volumeSlider.value)/100*0.38,audioCtx.currentTime,0.025); });
+
+    // 指定字元集點陣祝賀詞
+    const FONT = {
+      A:["01110","10001","10001","11111","10001","10001","10001"],
+      C:["01111","10000","10000","10000","10000","10000","01111"],
+      E:["11111","10000","10000","11110","10000","10000","11111"],
+      H:["10001","10001","10001","11111","10001","10001","10001"],
+      I:["11111","00100","00100","00100","00100","00100","11111"],
+      M:["10001","11011","10101","10101","10001","10001","10001"],
+      P:["11110","10001","10001","11110","10000","10000","10000"],
+      R:["11110","10001","10001","11110","10100","10010","10001"],
+      S:["01111","10000","10000","01110","00001","00001","11110"],
+      T:["11111","00100","00100","00100","00100","00100","00100"],
+      X:["10001","10001","01010","00100","01010","10001","10001"],
+      Y:["10001","10001","01010","00100","00100","00100","00100"]
+    };
+    // SINTEK 公司賀卡：畫面仍只輸出指定符號，文字輪廓由符號點陣組合
+    const cardCanvas = document.createElement("canvas");
+    const cardCtx = cardCanvas.getContext("2d", { willReadFrequently: true });
+    const cardCache = new Map();
+
+    function buildSymbolText(text, targetWidth, targetHeight, fontFamily) {
+      const key = `${text}|${targetWidth}|${targetHeight}|${fontFamily}`;
+      if (cardCache.has(key)) return cardCache.get(key);
+      cardCanvas.width = 900;
+      cardCanvas.height = 120;
+      cardCtx.clearRect(0, 0, cardCanvas.width, cardCanvas.height);
+      cardCtx.fillStyle = "#fff";
+      cardCtx.textAlign = "center";
+      cardCtx.textBaseline = "middle";
+      let fontSize = 92;
+      cardCtx.font = `900 ${fontSize}px ${fontFamily}`;
+      while (cardCtx.measureText(text).width > 840 && fontSize > 28) {
+        fontSize -= 2;
+        cardCtx.font = `900 ${fontSize}px ${fontFamily}`;
+      }
+      cardCtx.fillText(text, cardCanvas.width / 2, cardCanvas.height / 2 + 2);
+      const pixels = cardCtx.getImageData(0, 0, cardCanvas.width, cardCanvas.height).data;
+      const rows = [];
+      for (let ty = 0; ty < targetHeight; ty++) {
+        let row = "";
+        const y0 = Math.floor(ty * cardCanvas.height / targetHeight);
+        const y1 = Math.max(y0 + 1, Math.floor((ty + 1) * cardCanvas.height / targetHeight));
+        for (let tx = 0; tx < targetWidth; tx++) {
+          const x0 = Math.floor(tx * cardCanvas.width / targetWidth);
+          const x1 = Math.max(x0 + 1, Math.floor((tx + 1) * cardCanvas.width / targetWidth));
+          let hits = 0, samples = 0;
+          for (let y = y0; y < y1; y += 2) {
+            for (let x = x0; x < x1; x += 2) {
+              if (pixels[(y * cardCanvas.width + x) * 4 + 3] > 70) hits++;
+              samples++;
+            }
+          }
+          row += hits / Math.max(1, samples) > 0.075 ? "1" : "0";
+        }
+        rows.push(row);
+      }
+      cardCache.set(key, rows);
+      return rows;
+    }
+
+    // 公司賀卡改為分頁顯示，每次只顯示一行，避免四行文字互相覆蓋樹頂
+    const COMPANY_CARD_PAGES = [
+      // 中文拆成兩頁，提高每個中文字的點陣解析度
+      { text: "鑫達懋業", width: 72, height: 15, color: "#fde047", font: '"Microsoft JhengHei", "Noto Sans TC", sans-serif' },
+      { text: "股份有限公司", width: 86, height: 15, color: "#fde047", font: '"Microsoft JhengHei", "Noto Sans TC", sans-serif' },
+      { text: "SINTEK", width: 58, height: 12, color: "#67e8f9", font: 'Arial, sans-serif' },
+      { text: "MERRY CHRISTMAS", width: 94, height: 12, color: "#f8fafc", font: 'Arial, sans-serif' },
+      { text: "HAPPY NEW YEAR 2027", width: 108, height: 12, color: "#fda4af", font: 'Arial, sans-serif' }
+    ];
+
+    function drawBanner(charBuf, colorBuf, progress) {
+      if (progress <= 0 || !santaActive) return;
+
+      // 依雪橇時間分成四頁，最後祝詞不再和其他文字重疊
+      const greetingTime = Math.max(0, santaTimer - 8.4);
+      const pageDuration = 1.48;
+      const pageIndex = Math.min(COMPANY_CARD_PAGES.length - 1, Math.floor(greetingTime / pageDuration));
+      const page = COMPANY_CARD_PAGES[pageIndex];
+      const localTime = greetingTime - pageIndex * pageDuration;
+      const fadeIn = Math.min(1, localTime / 0.38);
+      const fadeOut = Math.min(1, Math.max(0, (pageDuration - localTime) / 0.38));
+      const visibility = Math.min(fadeIn, fadeOut);
+      if (visibility <= 0) return;
+
+      const bitmap = buildSymbolText(page.text, page.width, page.height, page.font);
+      const startX = Math.floor((COLS - page.width) / 2);
+      const startY = 3;
+      const frameLeft = Math.max(1, startX - 3);
+      const frameRight = Math.min(COLS - 2, startX + page.width + 2);
+      const frameTop = startY - 2;
+      const frameBottom = startY + page.height + 1;
+
+      // 清空賀卡專用區，避免樹、雪橇、星塵穿過文字
+      for (let y = Math.max(0, frameTop); y <= Math.min(ROWS - 1, frameBottom); y++) {
+        for (let x = frameLeft; x <= frameRight; x++) {
+          const idx = y * COLS + x;
+          charBuf[idx] = " ";
+          colorBuf[idx] = "#ffffff";
+        }
+      }
+
+      // 簡潔邊框，不再使用整片閃爍星點
+      for (let x = frameLeft; x <= frameRight; x++) {
+        const topIdx = frameTop * COLS + x;
+        const bottomIdx = frameBottom * COLS + x;
+        charBuf[topIdx] = "*";
+        colorBuf[topIdx] = "#fde047";
+        charBuf[bottomIdx] = "*";
+        colorBuf[bottomIdx] = "#fde047";
+      }
+      for (let y = frameTop + 1; y < frameBottom; y++) {
+        const leftIdx = y * COLS + frameLeft;
+        const rightIdx = y * COLS + frameRight;
+        charBuf[leftIdx] = "*"; colorBuf[leftIdx] = "#fde047";
+        charBuf[rightIdx] = "*"; colorBuf[rightIdx] = "#fde047";
+      }
+
+      // 使用固定字元建立清楚筆畫；淡入時由左至右生成
+      const revealColumns = Math.floor(page.width * visibility);
+      for (let y = 0; y < bitmap.length; y++) {
+        for (let x = 0; x < Math.min(bitmap[y].length, revealColumns); x++) {
+          if (bitmap[y][x] !== "1") continue;
+          const px = startX + x;
+          const py = startY + y;
+          if (px < 0 || px >= COLS || py < 0 || py >= ROWS) continue;
+          const idx = py * COLS + px;
+          charBuf[idx] = "*";
+          colorBuf[idx] = page.color;
+        }
+      }
+    }
+
+    function triggerSantaPass() {
+      santaActive = true;
+      santaTimer = 0;
+      droppedThisPass = 0;
+    }
+
+    function resetAll() {
+      greetingCard.classList.remove("is-visible");
+      greetingCard.setAttribute("aria-hidden", "true");
+      growProgress = 0;
+      growSlider.value = 0;
+      santaActive = false;
+      santaTimer = 0;
+      santaCooldown = 0;
+      sleighTrail.length = 0;
+      fallingGifts.length = 0;
+      landedGifts.length = 0;
+    }
+
+    replayBtn.addEventListener("click", () => { resetAll(); startMusic(); });
+    santaBtn.addEventListener("click", () => {
+      if (growProgress < 1) {
+        growProgress = 1;
+        growSlider.value = 100;
+      }
+      triggerSantaPass();
+      startMusic();
+    });
+
+    growSlider.addEventListener("input", (e) => {
+      isScrubbing = true;
+      growProgress = Number(e.target.value) / 100;
+    });
+    growSlider.addEventListener("change", () => {
+      isScrubbing = false;
+    });
+
+    function easeOutCubic(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    function spawnFallingGift(sx, sy, sz) {
+      const palette = giftPalettes[(landedGifts.length + fallingGifts.length) % giftPalettes.length];
+      // 目標落在樹底圓盤外圍空地
+      const targetAngle = rng() * Math.PI * 2;
+      const targetRadius = 0.45 + rng() * 0.78;
+      fallingGifts.push({
+        x: sx,
+        y: sy - 0.1,
+        z: sz,
+        tx: Math.cos(targetAngle) * targetRadius,
+        tz: Math.sin(targetAngle) * targetRadius,
+        vy: -0.012,
+        spin: rng() * Math.PI * 2,
+        boxColor: palette.box,
+        ribbonColor: palette.ribbon,
+        size: 0.15 + rng() * 0.06
+      });
+    }
+
+    function addLandedGiftBox(cx, cz, size, boxColor, ribbonColor) {
+      // 最多保留 12 個落地禮物盒，避免畫面過擠
+      if (landedGifts.length >= 22) {
+        landedGifts.shift();
+      }
+      const boxPts = [];
+      const steps = 10;
+      const h = size * 0.85;
+      for (let ix = 0; ix <= steps; ix++) {
+        for (let iy = 0; iy <= steps; iy++) {
+          for (let iz = 0; iz <= steps; iz++) {
+            const onSurface =
+              ix === 0 || ix === steps || iy === 0 || iy === steps || iz === 0 || iz === steps;
+            if (!onSurface) continue;
+            const u = ix / steps - 0.5;
+            const v = iy / steps;
+            const w = iz / steps - 0.5;
+            const isRibbon = Math.abs(u) < 0.11 || Math.abs(w) < 0.11;
+            boxPts.push({
+              x: cx + u * size,
+              y: Y0 - 0.01 + v * h,
+              z: cz + w * size,
+              color: isRibbon ? ribbonColor : boxColor,
+              glyph: isRibbon ? "*" : "#"
+            });
+          }
+        }
+      }
+      landedGifts.push(boxPts);
+    }
+
+    function render(now = performance.now()) {
+      if (mobileMode && now - lastMobileFrame < 33) {
+        requestAnimationFrame(render);
+        return;
+      }
+      lastMobileFrame = now;
+      const dt = Math.min(0.05, Math.max(0, (now-lastFrame)/1000)); lastFrame=now;
+      time += dt;
+
+      // 階段一：由下往上生長
+      if (!isScrubbing && growProgress < 1) {
+        growProgress = Math.min(1, growProgress + dt / 4.8);
+        growSlider.value = Math.round(growProgress * 100);
+        if (growProgress >= 1) {
+          santaCooldown = 0.6;
+        }
+      }
+
+      // 階段二：樹長成並持續旋轉後，自動觸發聖誕老公公駕雪橇飛過樹頂
+      if (growProgress >= 1 && !santaActive) {
+        santaCooldown -= dt;
+        if (santaCooldown <= 0) {
+          triggerSantaPass();
+        }
+      }
+
+      const easedGrow = easeOutCubic(growProgress);
+      const activeTopY = Y0 + TREE_H * easedGrow;
+
+      // 鏡頭角度：雪橇出現時視角略微上揚並拉遠一點，容納上方天空
+      const skyLift = santaActive ? 0.14 : 0.0;
+      const yaw = time * 0.85;
+      const pitch = 0.20 + skyLift * 0.35 + 0.08 * Math.sin(time * 0.45);
+      const cosY = Math.cos(yaw), sinY = Math.sin(yaw);
+      const cosP = Math.cos(pitch), sinP = Math.sin(pitch);
+
+      const lightX = 0.45, lightY = 0.65, lightZ = 0.61;
+
+      const zBuf = new Float32Array(COLS * ROWS).fill(-Infinity);
+      const charBuf = Array(COLS * ROWS).fill(" ");
+      const colorBuf = Array(COLS * ROWS).fill("#e5e7eb");
+
+      const aspect = 2.0;
+      const fov = 2.65;
+      const camDist = santaActive ? 3.85 : 3.65;
+
+      function project(px, py, pz) {
+        // 整體畫面在雪橇登場時稍微下移，讓樹頂上方有足夠夜空空間
+        const adjY = py - skyLift;
+
+        let x1 = px * cosY + pz * sinY;
+        let z1 = -px * sinY + pz * cosY;
+        let y1 = adjY;
+
+        let y2 = y1 * cosP - z1 * sinP;
+        let z2 = y1 * sinP + z1 * cosP;
+        let x2 = x1;
+
+        const depth = camDist - z2;
+        if (depth <= 0.2) return null;
+
+        const scale = fov / depth;
+        const sx = Math.floor(COLS * 0.5 + x2 * scale * (COLS * 0.26) * aspect);
+        const sy = Math.floor(ROWS * 0.54 - y2 * scale * (ROWS * 0.33));
+        return { sx, sy, z: z2 };
+      }
+
+      function putPixel(px, py, pz, ch, col) {
+        const proj = project(px, py, pz);
+        if (!proj) return;
+        const { sx, sy, z } = proj;
+        if (sx < 0 || sx >= COLS || sy < 0 || sy >= ROWS) return;
+        const idx = sy * COLS + sx;
+        if (z > zBuf[idx]) {
+          zBuf[idx] = z;
+          charBuf[idx] = ch;
+          colorBuf[idx] = col;
+        }
+      }
+
+      // 繪製聖誕樹本體
+      for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+
+        if (p.type !== "base" && p.y > activeTopY) continue;
+        if (p.type === "star" && growProgress < 0.96) continue;
+
+        const proj = project(p.x, p.y, p.z);
+        if (!proj) continue;
+
+        const { sx, sy, z } = proj;
+        if (sx < 0 || sx >= COLS || sy < 0 || sy >= ROWS) continue;
+
+        const idx = sy * COLS + sx;
+        const decorationPriority = p.type === "light" || p.type === "garland" || p.type === "star";
+        if (decorationPriority || z > zBuf[idx]) {
+          zBuf[idx] = decorationPriority ? Math.max(zBuf[idx], z + 0.35) : z;
+
+          if (p.type === "star") {
+            charBuf[idx] = p.glyph;
+            colorBuf[idx] = "#fde047";
+          } else if (p.type === "garland") {
+            charBuf[idx] = p.glyph;
+            colorBuf[idx] = p.color;
+          } else if (p.type === "light") {
+            const blink = 0.5 + 0.5 * Math.sin(time * 2.8 + p.phase);
+            charBuf[idx] = p.glyphBright;
+            colorBuf[idx] = blink > 0.42 ? p.color : "#94a3b8";
+          } else if (p.type === "trunk") {
+            charBuf[idx] = p.glyph;
+            colorBuf[idx] = p.color;
+          } else if (p.type === "base") {
+            charBuf[idx] = p.glyph;
+            colorBuf[idx] = "#64748b";
+          } else {
+            const nxRot = (p.nx || 0) * cosY + (p.nz || 0) * sinY;
+            const nzRot = -(p.nx || 0) * sinY + (p.nz || 0) * cosY;
+            const ndotl = Math.max(0.25, nxRot * lightX + 0.35 * lightY + nzRot * lightZ);
+
+            const isGrowingEdge = activeTopY - p.y < 0.08 && growProgress < 1;
+            const normZ = Math.min(1, Math.max(0, (z + 1.2) / 2.4));
+            const shade = Math.min(1, (normZ * 0.65 + ndotl * 0.55) * (p.weight || 0.8));
+            const level = Math.min(RAMP.length - 1, Math.floor(shade * (RAMP.length - 1)));
+
+            charBuf[idx] = isGrowingEdge ? "#" : RAMP[level];
+            colorBuf[idx] = isGrowingEdge ? "#86efac" : p.color;
+          }
+        }
+      }
+
+      // 更新並繪製聖誕老公公雪橇（在樹頂上方天空繞弧線飛過）
+      if (santaActive) {
+        // 慢速進場、樹前展示發禮物、再加速離場
+        santaTimer += dt;
+        const totalSantaTime = 18.0;
+        const u = Math.min(1, santaTimer / totalSantaTime);
+        let sx, sy, sz, local;
+        if (santaTimer < 4.0) {
+          santaPhase = "APPROACHING";
+          local = easeOutCubic(santaTimer / 4.0);
+          sx = -2.25 + local * 1.65;
+          sy = Y1 + 0.78 - local * 0.28;
+          sz = -0.15 + local * 1.22;
+        } else if (santaTimer < 14.0) {
+          santaPhase = santaTimer < 11.8 ? "DELIVERING" : "GREETING";
+          local = (santaTimer - 4.0) / 10.0;
+          sx = -0.60 + local * 1.15;
+          sy = Y1 + 0.50 + Math.sin(time * 4) * 0.035;
+          sz = 1.78 + Math.sin(local * Math.PI) * 0.16;
+        } else {
+          santaPhase = "DEPARTING";
+          local = easeOutCubic((santaTimer - 14.0) / 4.0);
+          sx = 0.55 + local * 1.85;
+          sy = Y1 + 0.50 + local * 0.48;
+          sz = 1.78 - local * 1.65;
+        }
+        const dx = santaPhase === "DELIVERING" || santaPhase === "GREETING" ? 1.15 : 1.85;
+        const dz = santaPhase === "APPROACHING" ? 1.22 : santaPhase === "DEPARTING" ? -1.15 : 0.12;
+        const heading = Math.atan2(dz, dx);
+        const cosH = Math.cos(heading), sinH = Math.sin(heading);
+        const modelScale = santaPhase === "DELIVERING" || santaPhase === "GREETING" ? 2.15 : 1.32;
+        for (let i = 0; i < sleighPoints.length; i++) {
+          const sp = sleighPoints[i];
+          const wx = sx + (sp.lx * cosH - sp.lz * sinH) * modelScale;
+          const wz = sz + (sp.lx * sinH + sp.lz * cosH) * modelScale;
+          const wy = sy + sp.ly * modelScale;
+          putPixel(wx, wy, wz, sp.glyph, sp.color);
+        }
+        if (Math.random() < 0.85) {
+          sleighTrail.push({ x:sx-0.35*cosH+(rng()-0.5)*0.12, y:sy-0.05+(rng()-0.5)*0.08, z:sz-0.35*sinH+(rng()-0.5)*0.12, life:1, glyph:pickFrom(["*","~","^","?"]) });
+        }
+        const dropTimes = [4.65, 5.25, 5.85, 6.45, 7.05, 7.65, 8.25, 8.85, 9.45, 10.05, 10.65, 11.25, 11.85, 12.45];
+        if (droppedThisPass < dropTimes.length && santaTimer >= dropTimes[droppedThisPass]) {
+          spawnFallingGift(sx, sy, sz);
+          droppedThisPass++;
+          giftChime(79 + droppedThisPass);
+        }
+        if (santaTimer >= totalSantaTime) {
+          santaActive = false;
+          santaPhase = "NEXT PASS";
+          santaCooldown = 5.5;
+        }
+      }
+
+      // 更新並繪製雪橇星塵尾跡
+      for (let i = sleighTrail.length - 1; i >= 0; i--) {
+        const tr = sleighTrail[i];
+        tr.life -= 0.025;
+        tr.y -= 0.002;
+        if (tr.life <= 0) {
+          sleighTrail.splice(i, 1);
+          continue;
+        }
+        const col = tr.life > 0.5 ? "#fde047" : "#93c5fd";
+        putPixel(tr.x, tr.y, tr.z, tr.glyph, col);
+      }
+
+      // 更新並繪製空中降落中的禮物盒
+      for (let i = fallingGifts.length - 1; i >= 0; i--) {
+        const g = fallingGifts[i];
+        g.vy -= 0.00045; // 重力加速
+        g.y += g.vy;
+        g.x += (g.tx - g.x) * 0.035;
+        g.z += (g.tz - g.z) * 0.035;
+        g.spin += 0.12;
+
+        // 降落尾跡
+        putPixel(g.x, g.y + 0.12, g.z, "~", "#fef08a");
+
+        // 繪製小型降落禮物盒
+        const r = g.size * 0.45;
+        const c = Math.cos(g.spin) * r;
+        const s = Math.sin(g.spin) * r;
+        putPixel(g.x, g.y, g.z, "@", g.boxColor);
+        putPixel(g.x + c, g.y, g.z + s, "#", g.boxColor);
+        putPixel(g.x - c, g.y, g.z - s, "#", g.boxColor);
+        putPixel(g.x, g.y + r * 0.8, g.z, "*", g.ribbonColor);
+
+        // 觸地轉換為樹底固定禮物盒
+        if (g.y <= Y0 + 0.05) {
+          addLandedGiftBox(g.tx, g.tz, g.size, g.boxColor, g.ribbonColor);
+          fallingGifts.splice(i, 1);
+        }
+      }
+
+      // 繪製已降落並堆積在樹底的禮物盒
+      for (let b = 0; b < landedGifts.length; b++) {
+        const boxPts = landedGifts[b];
+        for (let k = 0; k < boxPts.length; k++) {
+          const bp = boxPts[k];
+          putPixel(bp.x, bp.y, bp.z, bp.glyph, bp.color);
+        }
+      }
+
+      // 雪花
+      for (let i = 0; i < snow.length; i++) {
+        const s = snow[i];
+        s.y -= s.speed;
+        s.x += Math.sin(time * 1.5 + s.drift) * 0.004;
+        if (s.y < Y0 - 0.25) {
+          s.y = Y1 + 0.85;
+          s.x = (rng() - 0.5) * 3.6;
+        }
+        putPixel(s.x, s.y, s.z, s.glyph, "#f8fafc");
+      }
+
+      // 雪地反光層：樹完成後逐步浮現，遠離中心亮度降低
+      if (growProgress > 0.70) {
+        const reveal = Math.min(1, (growProgress - 0.70) / 0.30);
+        for (let i = 0; i < groundGlow.length; i++) {
+          const g = groundGlow[i];
+          if (rng() > reveal * 0.94) continue;
+          const pulse = 0.5 + 0.5 * Math.sin(time * 1.8 + g.phase);
+          putPixel(g.x, g.y, g.z, pulse > 0.62 ? g.glyph : ".", g.color);
+        }
+      }
+
+
+      // 階段三祝賀詞：只使用指定字元集
+      const bannerProgress = santaActive && santaTimer >= 8.4 && santaTimer <= 16.1
+        ? Math.min(1, (santaTimer-8.4)/1.0) : 0;
+      // V2.1.1：祝詞改用一般 HTML 文字，不再寫入 ASCII 畫布
+      greetingCard.classList.toggle("is-visible", bannerProgress > 0);
+      greetingCard.setAttribute("aria-hidden", bannerProgress > 0 ? "false" : "true");
+
+      // 輸出 HTML 字串
+      let out = "";
+      for (let r = 0; r < ROWS; r++) {
+        const rowStart = r * COLS;
+        let currentColor = null;
+        for (let c = 0; c < COLS; c++) {
+          const idx = rowStart + c;
+          const ch = charBuf[idx];
+          const col = ch === " " ? "transparent" : colorBuf[idx];
+          if (col !== currentColor) {
+            if (currentColor !== null) out += "</span>";
+            out += `<span style="color:${col}">`;
+            currentColor = col;
+          }
+          out += ch;
+        }
+        out += "</span>\n";
+      }
+
+      canvasEl.innerHTML = out;
+
+      const pct = Math.round(growProgress * 100);
+      const degYaw = Math.round(((yaw * 180) / Math.PI) % 360);
+      const santaState = santaActive ? santaPhase : growProgress >= 1 ? "NEXT PASS" : "STANDBY";
+      statsEl.textContent = `GROW: ${pct}% | ROT: ${degYaw}deg | SANTA: ${santaState} | GIFTS: ${landedGifts.length} | DROP: ${droppedThisPass}/14`;
+
+      requestAnimationFrame(render);
+    }
+
+    render();
+  </script>
+</body>
+</html>
